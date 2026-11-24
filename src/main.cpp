@@ -12,8 +12,13 @@ const float BOARD_Y = 20.f;     //Required for drawing Board
 const float CELL = 30.f;        //Required for drawing Board
 
 int board[rows][cols];      //2D array which will work as board for tetris Pieces
+char pieces[7][4][4];       //Stores all 7 pieces with 4x4 dimension
+char activepiece[4][4];     //Stores the active piece with 4x4 dimension
+int currpiece = 0;          //To store the index of active piece
+int piece_x = 3;            //Controls the horizontal position of the piece
+int piece_y = 0;            //Controls the vertical position of the piece
 
-bool loadboard()            // Load the Game Board Where Pieces Fall
+bool loadboard()            //Load the Game Board Where Pieces Fall
 {
     ifstream file("../../../src/board.txt");     //Load Board File
 
@@ -31,6 +36,31 @@ bool loadboard()            // Load the Game Board Where Pieces Fall
 
     file.close();           //Closes the Board.txt file
     return true;        //Let's the code run if the board loads successfully
+}
+
+bool loadPieces()                                     //Loads all Tetris pieces from the pieces.txt
+{
+    ifstream file("../../../src/pieces.txt");         //Load pieces file
+
+    if (!file.is_open())                              //Checks whether the file opened successfully
+    {
+        cout << "Pieces failed to load!";             //Displays an error message
+        return false;                                 //Stops loading if the file fails to open
+    }
+
+    for (int p = 0; p < 7; p++)                      //Goes through all 7 pieces
+    {
+        for (int r = 0; r < 4; r++)                  //Goes through the 4 rows of each piece
+        {
+            for (int c = 0; c < 4; c++)              //Goes through the 4 columns of each piece
+            {
+                file >> pieces[p][r][c];             //Stores each piece into the array
+            }
+        }
+    }
+
+    file.close();                                     //Closes the pieces.txt file
+    return true;                                      //Let's the code run if the board loads successfully
 }
 
 void drawBoard(sf::RenderWindow& window, sf::RectangleShape& block, sf::Color colors[])     //Draws the Board
@@ -51,10 +81,44 @@ void drawBoard(sf::RenderWindow& window, sf::RectangleShape& block, sf::Color co
     }
 }
 
+void drawPiece(sf::RenderWindow& window, sf::RectangleShape& block, sf::Color colors[]) //Draws the active piece
+{
+    for (int r = 0; r < 4; r++)                       //Loops through all 4 rows
+    {
+        for (int c = 0; c < 4; c++)                   //Loops through all 4 columns
+        {
+            if (activepiece[r][c] == '1')             //Checks whether the current cell contains a block
+            {
+                block.setFillColor(colors[1]);        //Sets the piece colour to cyan
+
+                block.setPosition({                         //Sets the position of the current block
+                    BOARD_X + (piece_x + c) * CELL + 1,      //Calculates the horizontal position
+                    BOARD_Y + (piece_y + r) * CELL + 1       //Calculates the vertical position
+                });
+
+                window.draw(block);                   //Draws the block on the game window
+            }
+        }
+    }
+}
+
 int main()
 {
-    if (!loadboard())
-        return -1;
+    if (!loadboard())           //Attempts to load the Board
+        return -1;              //Stops the cpp if the Board faildsto load
+
+    if (!loadPieces())          //Attempts to load all Tetris pieces
+    return -1;                  //Stops the cpp code if pieces cannot be loaded
+
+    currpiece = 0;                 // Selects the first Tetris piece
+
+    for (int r = 0; r < 4; r++)      // Loops through all 4 rows
+    {
+        for (int c = 0; c < 4; c++)  // Loops through all 4 columns
+        {
+            activepiece[r][c] = pieces[currpiece][r][c]; // Copies the selected piece into activePiece
+        }
+    }
 
     sf::RenderWindow window(sf::VideoMode({520, 640}), "Tetris");
     window.setFramerateLimit(60);
@@ -78,7 +142,8 @@ int main()
 
         window.clear(sf::Color(25, 25, 45));
 
-        drawBoard(window, block, colors);
+        drawBoard(window, block, colors);       //Draws the Board
+        drawPiece(window, block, colors);       //Draws the active Tetris piece
         window.display();
     }
 
