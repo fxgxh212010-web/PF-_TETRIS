@@ -13,25 +13,13 @@ const float BOARD_Y = 20.f;     //Required for drawing Board
 const float CELL = 30.f;        //Required for drawing Board
 
 int board[rows][cols];      //2D array which will work as board for tetris Pieces
-// 7 tetris shapes, 1 is a block and 0 is empty
-int pieces[7][4][4] = {
-    { {0,0,0,0}, {1,1,1,1}, {0,0,0,0}, {0,0,0,0} }, // I shape
-    { {0,1,1,0}, {0,1,1,0}, {0,0,0,0}, {0,0,0,0} }, // O shape
-    { {0,1,0,0}, {1,1,1,0}, {0,0,0,0}, {0,0,0,0} }, // T shape
-    { {0,1,1,0}, {1,1,0,0}, {0,0,0,0}, {0,0,0,0} }, // S shape
-    { {1,1,0,0}, {0,1,1,0}, {0,0,0,0}, {0,0,0,0} }, // Z shape
-    { {1,0,0,0}, {1,1,1,0}, {0,0,0,0}, {0,0,0,0} }, // J shape
-    { {0,0,1,0}, {1,1,1,0}, {0,0,0,0}, {0,0,0,0} }  // L
-};
+char pieces[7][4][4];       //Stores all 7 pieces with 4x4 dimension
+char activepiece[4][4];     //Stores the active piece with 4x4 dimension
+int currpiece = 0;          //To store the index of active piece
+int piece_x = 3;            //Controls the horizontal position of the piece
+int piece_y = 0;            //Controls the vertical position of the piece
 
-int currentPiece = 0;// stores which piece is falling now
-int nextPiece = 0;// stores the next piece waiting
-int pieceRow = 0; // starts at the top
-int pieceCol = 3; // starts near the middle
-
-int fallTime = 0;// counts how many frames have passed
-int fallSpeed = 30; // drops 1 row after every30 frames on level 1
-bool loadboard()            // Load the Game Board Where Pieces Fall
+bool loadboard()            //Load the Game Board Where Pieces Fall
 {
     ifstream file("../../../src/board.txt");     //Load Board File
 
@@ -62,79 +50,31 @@ bool canMove(int newRow, int newCol)
                 int boardR = newRow + r;//find the block new row
                 int boardC = newCol + c;//find board new column
 
-                if (boardR >= rows) // hit the bottom
-                    return false;
-
-                if (boardC < 0 || boardC >= cols) // hit left or right wall then stop
-                    return false;
-
-                if (boardR >= 0 && board[boardR][boardC] != 0) // hit another locked block
-                    return false;
-            }
-        }
-    }
-    return true;
-}
-
-// copies the piece into the board and spawns the next one
-void lockPiece() //for locking the piece
+bool loadPieces()                                     //Loads all Tetris pieces from the pieces.txt
 {
-    for (int r = 0; r < 4; r++)// runs through the rows
+    ifstream file("../../../src/pieces.txt");         //Load pieces file
+
+    if (!file.is_open())                              //Checks whether the file opened successfully
     {
-        for (int c = 0; c < 4; c++) // runs through the columns
+        cout << "Pieces failed to load!";             //Displays an error message
+        return false;                                 //Stops loading if the file fails to open
+    }
+
+    for (int p = 0; p < 7; p++)                      //Goes through all 7 pieces
+    {
+        for (int r = 0; r < 4; r++)                  //Goes through the 4 rows of each piece
         {
-            if (pieces[currentPiece][r][c] == 1)//copy the actual blocks
-            {// find where this block sits on the main board or not 
-                int boardR = pieceRow + r;
-                int boardC = pieceCol + c;
-
-                if (boardR >= 0 && boardR < rows && boardC >= 0 && boardC < cols)
-                {
-                    board[boardR][boardC] = currentPiece + 1; // +1 because 0 is empty
-                }
-            }
-        }
-    }
-
-    // bring in the next piece at the top
-    currentPiece = nextPiece;
-    nextPiece = rand() % 7; //for random next piece
-    pieceRow = 0;
-    pieceCol = 3;
-}
-
-// sends the piece straight to the bottom and locks it
-void hardDrop()
-{
-    while (canMove(pieceRow + 1, pieceCol))
-    {
-        pieceRow++; // keep moving down until it hits something like another piece
-    }
-    lockPiece();
-    fallTime = 0; // reset timer for the new piece
-}
-
-// draws the falling piece on top of the board
-void drawPiece(sf::RenderWindow& window, sf::RectangleShape& block, sf::Color colors[])
-{
-    block.setFillColor(colors[ 1]);
-
-    for (int r = 0; r < 4; r++)
-    {
-        for (int c = 0; c < 4; c++)
-        {
-            if (pieces[currentPiece][r][c] == 1)
+            for (int c = 0; c < 4; c++)              //Goes through the 4 columns of each piece
             {
-                block.setPosition({
-                    BOARD_X + (pieceCol + c) * CELL + 1,
-                    BOARD_Y + (pieceRow + r) * CELL + 1
-                });
-
-                window.draw(block);
+                file >> pieces[p][r][c];             //Stores each piece into the array
             }
         }
     }
+
+    file.close();                                     //Closes the pieces.txt file
+    return true;                                      //Let's the code run if the board loads successfully
 }
+
 void drawBoard(sf::RenderWindow& window, sf::RectangleShape& block, sf::Color colors[])     //Draws the Board
 {
     for (int r = 0; r < rows; r++)
@@ -156,13 +96,44 @@ void drawBoard(sf::RenderWindow& window, sf::RectangleShape& block, sf::Color co
     }
 }
 
+void drawPiece(sf::RenderWindow& window, sf::RectangleShape& block, sf::Color colors[]) //Draws the active piece
+{
+    for (int r = 0; r < 4; r++)                       //Loops through all 4 rows
+    {
+        for (int c = 0; c < 4; c++)                   //Loops through all 4 columns
+        {
+            if (activepiece[r][c] == '1')             //Checks whether the current cell contains a block
+            {
+                block.setFillColor(colors[1]);        //Sets the piece colour to cyan
+
+                block.setPosition({                         //Sets the position of the current block
+                    BOARD_X + (piece_x + c) * CELL + 1,      //Calculates the horizontal position
+                    BOARD_Y + (piece_y + r) * CELL + 1       //Calculates the vertical position
+                });
+
+                window.draw(block);                   //Draws the block on the game window
+            }
+        }
+    }
+}
+
 int main()
 {
-    srand(time(0)); // so we get different random pieces each time
-    currentPiece = rand() % 7;
-    nextPiece = rand() % 7;
-    if (!loadboard())
-        return -1;
+    if (!loadboard())           //Attempts to load the Board
+        return -1;              //Stops the cpp if the Board faildsto load
+
+    if (!loadPieces())          //Attempts to load all Tetris pieces
+    return -1;                  //Stops the cpp code if pieces cannot be loaded
+
+    currpiece = 0;                 // Selects the first Tetris piece
+
+    for (int r = 0; r < 4; r++)      // Loops through all 4 rows
+    {
+        for (int c = 0; c < 4; c++)  // Loops through all 4 columns
+        {
+            activepiece[r][c] = pieces[currpiece][r][c]; // Copies the selected piece into activePiece
+        }
+    }
 
     sf::RenderWindow window(sf::VideoMode({520, 640}), "Tetris");
     window.setFramerateLimit(60);
@@ -201,8 +172,8 @@ if (const auto* key = event->getIf<sf::Event::KeyPressed>())// check if a key wa
         }
         window.clear(sf::Color(25, 25, 45));
 
-        drawBoard(window, block, colors);
-        drawPiece(window, block, colors);
+        drawBoard(window, block, colors);       //Draws the Board
+        drawPiece(window, block, colors);       //Draws the active Tetris piece
         window.display();
     }
 
