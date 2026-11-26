@@ -248,7 +248,58 @@ void drawboard(sf::RenderWindow& window, sf::RectangleShape& block, sf::Color co
         }
     }
 }
+const int ROWS = 20;
+const int COLS = 10;
 
+bool isValidMove(int grid[ROWS][COLS], int piece[4][4], int targetX, int targetY) {
+    for (int i = 0; i < 4; i++) {
+        for (int j = 0; j < 4; j++) {
+            if (piece[i][j] != 0) {
+                int boardX = targetX + j;
+                int boardY = targetY + i;
+
+                if (boardX < 0 || boardX >= COLS || boardY >= ROWS) {
+                    return false;
+                }
+
+                if (boardY >= 0 && grid[boardY][boardX] != 0) {
+                    return false;
+                }
+            }
+        }
+    }
+    return true;
+}
+void rotatePiece(int grid[ROWS][COLS], int piece[4][4], int &pieceX, int pieceY, int shapetype) {
+    if (shapetype == 1) {
+        return;
+    }
+
+    int temp[4][4] = {0};
+
+    for (int i = 0; i < 4; i++) {
+        for (int j = 0; j < 4; j++) {
+            temp[j][3 - i] = piece[i][j];
+        }
+    }
+
+    int kickOffsets[3] = {0, -1, 1};
+
+    for (int k = 0; k < 3; k++) {
+        int testX = pieceX + kickOffsets[k];
+
+        if (isValidMove(grid, temp, testX, pieceY)) {
+            pieceX = testX;
+
+            for (int i = 0; i < 4; i++) {
+                for (int j = 0; j < 4; j++) {
+                    piece[i][j] = temp[i][j];
+                }
+            }
+            return;
+        }
+    }
+}
 
 void drawpiece(sf::RenderWindow& window, sf::RectangleShape& block, sf::Color colors[]) //draws the currently falling piece
 {
