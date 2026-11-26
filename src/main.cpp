@@ -122,12 +122,47 @@ void lockpiece()                           //locks the piece in its current posi
                 int boardr = piece_y + r;
                 int boardc = piece_x + c;
 
-                if (boardr >= 0 && boardr < rows &&
-                    boardc >= 0 && boardc < cols)
+                if (boardr >= 0 && boardr < rows && boardc >= 0 && boardc < cols)
                 {
                     board[boardr][boardc] = 1;  //stores the piece permanently
                 }
             }
+        }
+    }
+}
+
+
+void clearline()                            //clears completely filled rows
+{
+    for (int r = rows - 1; r >= 0; r--)
+    {
+        bool full = true;                   //assumes the row is completely filled
+
+        for (int c = 0; c < cols; c++)
+        {
+            if (board[r][c] == 0)
+            {
+                full = false;               //row contains an empty cell
+                break;
+            }
+        }
+
+        if (full)
+        {
+            for (int move = r; move > 0; move--)
+            {
+                for (int c = 0; c < cols; c++)
+                {
+                    board[move][c] = board[move - 1][c]; //moves rows downward
+                }
+            }
+
+            for (int c = 0; c < cols; c++)
+            {
+                board[0][c] = 0;            //clears the top row
+            }
+
+            r++;                            //checks the same row again
         }
     }
 }
@@ -141,7 +176,7 @@ void spawnpiece()                           //spawns a random tetris piece
     {
         for (int c = 0; c < 4; c++)
         {
-            activepiece[r][c] = pieces[currpiece][r][c];  //copies the selected piece
+            activepiece[r][c] = pieces[currpiece][r][c]; //copies the selected piece
         }
     }
 
@@ -171,6 +206,7 @@ void updatefalling()                        //controls automatic falling
         else
         {
             lockpiece();                    //stores the piece on the board
+            clearline();                    //clears completed rows
             spawnpiece();                   //spawns the next random piece
         }
     }
@@ -185,9 +221,10 @@ void harddrop()                             //drops the piece directly to the bo
     }
 
     lockpiece();                            //locks the piece in its final position
+    clearline();                            //clears completed rows
     spawnpiece();                           //creates the next random piece
 
-    falltime = 0;                            //resets the falling timer
+    falltime = 0;                           //resets the falling timer
 }
 
 
@@ -243,7 +280,7 @@ int main()
     if (!loadpieces())                      //loads all 7 tetris pieces
         return -1;
 
-    srand(static_cast<unsigned int>(time(0)));  //initializes random piece selection
+    srand(static_cast<unsigned int>(time(0))); //initializes random piece selection
 
     spawnpiece();                           //spawns the first random piece
 
