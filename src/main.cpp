@@ -25,7 +25,7 @@ int piece_x = 3;                    //horizontal position
 int piece_y = 0;                    //vertical position
 
 int falltime = 0;                   //counter for automatic falling
- int fallspeed = 30;           //frames before falling
+int fallspeed = 30;           //frames before falling
 
 bool gameover = false;              //checks whether the game has ended
 
@@ -36,7 +36,7 @@ int nextpiece = -1;
 void updateLevelAndSpeed(int cleared);
 bool loadboard()                    //loads the game board
 {
-    ifstream file("../../../../src/board.txt");
+    ifstream file("../../../src/board.txt");
 
     if (!file.is_open())
     {
@@ -63,7 +63,7 @@ bool loadboard()                    //loads the game board
 
 bool loadpieces()                   //loads all 7 tetris pieces
 {
-    ifstream file("../../../../src/pieces.txt");
+    ifstream file("../../../src/pieces.txt");
 
     if (!file.is_open())
     {
