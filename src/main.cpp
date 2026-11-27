@@ -25,14 +25,18 @@ int piece_x = 3;                    //horizontal position
 int piece_y = 0;                    //vertical position
 
 int falltime = 0;                   //counter for automatic falling
-const int fallspeed = 30;           //frames before falling
+ int fallspeed = 30;           //frames before falling
 
 bool gameover = false;              //checks whether the game has ended
 
-
+int score = 0;
+int totalLines = 0;
+int level = 1;
+int nextpiece = -1;
+void updateLevelAndSpeed(int cleared);
 bool loadboard()                    //loads the game board
 {
-    ifstream file("../../../src/board.txt");
+    ifstream file("../../../../src/board.txt");
 
     if (!file.is_open())
     {
@@ -59,7 +63,7 @@ bool loadboard()                    //loads the game board
 
 bool loadpieces()                   //loads all 7 tetris pieces
 {
-    ifstream file("../../../src/pieces.txt");
+    ifstream file("../../../../src/pieces.txt");
 
     if (!file.is_open())
     {
@@ -134,6 +138,7 @@ void lockpiece()                           //locks the piece in its current posi
 
 void clearline()                            //clears completely filled rows
 {
+    int cleared = 0;
     for (int r = rows - 1; r >= 0; r--)
     {
         bool full = true;                   //assumes the row is completely filled
@@ -162,16 +167,21 @@ void clearline()                            //clears completely filled rows
                 board[0][c] = 0;            //clears the top row
             }
 
-            r++;                            //checks the same row again
+            r++;     
+            cleared++;//checks the same row again
         }
     }
+
 }
 
 
 void spawnpiece()                           //spawns a random tetris piece
 {
     currpiece = rand() % 7;                 //selects a random piece from 0 to 6
-
+    if (nextpiece == -1)
+        nextpiece = rand() % 7;
+    currpiece = nextpiece;
+    nextpiece = rand() % 7;
     for (int r = 0; r < 4; r++)
     {
         for (int c = 0; c < 4; c++)
@@ -321,7 +331,62 @@ void drawpiece(sf::RenderWindow& window, sf::RectangleShape& block, sf::Color co
         }
     }
 }
+void updateLevelAndSpeed(int cleared)
+{
+    if (cleared > 0)
+    {
+        totalLines += cleared;
+        score += cleared * 100 * level;
+        level = (totalLines / 10) + 1;
 
+        fallspeed = 30 - (level - 1) * 5;
+        if (fallspeed < 5)
+            fallspeed = 5;
+    }
+}
+
+void drawSidePanel(sf::RenderWindow& window, sf::Font& font, sf::RectangleShape& block, sf::Color colors[])
+{
+    sf::Text info(font);
+    info.setCharacterSize(20);
+    info.setFillColor(sf::Color::White);
+
+    info.setString("SCORE\n" + to_string(score) +
+        "\n\nLINES\n" + to_string(totalLines) +
+        "\n\nLEVEL\n" + to_string(level) +
+        "\n\nNEXT");
+    info.setPosition({ 350.f, 30.f });
+    window.draw(info);
+
+    // Draw next piece preview
+    if (nextpiece >= 0 && nextpiece < 7)
+    {
+        for (int r = 0; r < 4; r++)
+        {
+            for (int c = 0; c < 4; c++)
+            {
+                if (pieces[nextpiece][r][c] == '1')
+                {
+                    block.setFillColor(colors[1]);
+                    block.setPosition({ 350.f + c * cell, 280.f + r * cell });
+                    window.draw(block);
+                }
+            }
+        }
+    }
+
+    // Show GAME OVER text when the game ends
+    if (gameover)  //checks is game end
+    
+    {
+        sf::Text over(font);   //creates  game over message
+        over.setCharacterSize(26);  //sets a larger font
+        over.setFillColor(sf::Color::Red);  //game over in red
+        over.setString("GAME OVER");   //sets the message text
+        over.setPosition({ 340.f, 450.f });
+        window.draw(over);
+    }
+}
 
 int main()
 {
@@ -346,7 +411,9 @@ int main()
         sf::Color(35, 35, 55),              //empty cells
         sf::Color::Cyan                     //filled blocks
     };
-
+    sf::Font font;  //creates a font 
+    if (!font.openFromFile("C:/Windows/Fonts/arial.ttf"))  //loads the Arial font 
+        cout << "Font failed to load!" << endl;  //prints an error if the font cannot be loaded
     while (window.isOpen())
     {
         while (const std::optional event = window.pollEvent())
@@ -393,7 +460,7 @@ int main()
 
         if (!gameover)
             drawpiece(window, block, colors); //draws the active piece
-
+        drawSidePanel(window, font, block, colors); //draws the side panel every frame
         window.display();
     }
 
