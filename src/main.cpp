@@ -258,17 +258,15 @@ void drawboard(sf::RenderWindow& window, sf::RectangleShape& block, sf::Color co
         }
     }
 }
-const int ROWS = 20;
-const int COLS = 10;
 
-bool isValidMove(int grid[ROWS][COLS], int piece[4][4], int targetX, int targetY) {
+bool isValidMove(int grid[rows][cols], int piece[4][4], int targetX, int targetY) {
     for (int i = 0; i < 4; i++) {
         for (int j = 0; j < 4; j++) {
             if (piece[i][j] != 0) {
                 int boardX = targetX + j;
                 int boardY = targetY + i;
 
-                if (boardX < 0 || boardX >= COLS || boardY >= ROWS) {
+                if (boardX < 0 || boardX >= cols || boardY >= rows) {
                     return false;
                 }
 
@@ -280,7 +278,8 @@ bool isValidMove(int grid[ROWS][COLS], int piece[4][4], int targetX, int targetY
     }
     return true;
 }
-void rotatePiece(int grid[ROWS][COLS], int piece[4][4], int &pieceX, int pieceY, int shapetype) {
+
+void rotatePiece(int grid[rows][cols], int piece[4][4], int &pieceX, int pieceY, int shapetype) {
     if (shapetype == 1) {
         return;
     }
