@@ -19,6 +19,7 @@ char pieces[7][4][4];               //stores all 7 tetris pieces
 char activepiece[4][4];             //stores the currently falling piece
 
 int currentpiece = 0;               //index of the current piece
+int nextpiece = -1;                 //index of the next piece to spawn
 int score = 0;                      //stores the player's score
 int level = 1;                      //stores the current game level
 int linescleared = 0;               //stores the total cleared lines
@@ -192,7 +193,7 @@ void initializecolors(sf::Color colors[]) //initializes the colors of the pieces
     colors[4] = sf::Color::Green;    //sets the fourth piece color
     colors[5] = sf::Color::Red;      //sets the fifth piece color
     colors[6] = sf::Color::Blue;     //sets the sixth piece color
-    colors[7] = sf::Color(255, 150, 0); //sets the seventh piece color
+    colors[7] = sf::Color(255,255,255); //sets the seventh piece color
 }
 
 
@@ -434,9 +435,13 @@ void clearlines()                     //removes completely filled rows
 }
 
 
-void spawnpiece()                     //spawns a random tetris piece
+void spawnpiece()                     //spawns the queued piece and picks the next one
 {
-    currentpiece = rand() % 7;         //selects a random piece from 0 to 6
+    if (nextpiece == -1)               //checks whether this is the very first spawn
+        nextpiece = rand() % 7;        //picks the first queued piece
+
+    currentpiece = nextpiece;          //the queued piece becomes the active piece
+    nextpiece = rand() % 7;            //picks the new next piece for the preview
 
     for (int r = 0; r < 4; r++)       //loops through the piece rows
     {
@@ -486,6 +491,64 @@ void updatefalling()                  //controls automatic piece falling
 }
 
 
+void drawnext(sf::RenderWindow& window, sf::Color colors[], sf::Text& nexttext) //draws the next piece preview
+{
+    if (nextpiece < 0 || nextpiece >= 7) //checks whether a next piece exists
+        return;                        //skips drawing if no piece is queued
+
+    window.draw(nexttext);             //draws the next piece label
+
+    const float mini = 9.f;            //size of each preview cell
+    const float box_cx = 470.f;        //horizontal center of the piece area
+    const float box_cy = 195.f;        //vertical center of the 4th box
+
+    int minr = 4, maxr = -1;           //tracks the top and bottom rows of the piece
+    int minc = 4, maxc = -1;           //tracks the left and right columns of the piece
+
+    for (int r = 0; r < 4; r++)       //loops through the piece rows
+    {
+        for (int c = 0; c < 4; c++)   //loops through the piece columns
+        {
+            if (pieces[nextpiece][r][c] == '1') //checks actual blocks only
+            {
+                if (r < minr) minr = r; //updates the top row
+                if (r > maxr) maxr = r; //updates the bottom row
+                if (c < minc) minc = c; //updates the left column
+                if (c > maxc) maxc = c; //updates the right column
+            }
+        }
+    }
+
+    if (maxr == -1)                    //checks whether the piece has any blocks
+        return;                        //skips drawing an empty piece
+
+    float w = (maxc - minc + 1) * mini; //calculates the piece width
+    float h = (maxr - minr + 1) * mini; //calculates the piece height
+
+    float startx = box_cx - w / 2.f;   //centers the piece horizontally
+    float starty = box_cy - h / 2.f;   //centers the piece vertically
+
+    sf::RectangleShape backing({w + 6.f, h + 6.f}); //creates a dark backing behind the piece
+    backing.setFillColor(colors[0]);   //uses the empty cell color
+    backing.setPosition({startx - 3.f, starty - 3.f}); //positions the backing
+    window.draw(backing);              //draws the backing
+
+    sf::RectangleShape small({mini - 1.f, mini - 1.f}); //creates a small block
+    small.setFillColor(colors[nextpiece + 1]); //uses the next piece's color
+
+    for (int r = minr; r <= maxr; r++) //loops through the piece's used rows
+    {
+        for (int c = minc; c <= maxc; c++) //loops through the piece's used columns
+        {
+            if (pieces[nextpiece][r][c] == '1') //checks actual blocks only
+            {
+                small.setPosition({startx + (c - minc) * mini, starty + (r - minr) * mini}); //positions the block
+                window.draw(small);    //draws the preview block
+            }
+        }
+    }
+}
+
 void drawboard(sf::RenderWindow& window, sf::RectangleShape& block, sf::Color colors[]) //draws the game board
 {
     for (int r = 0; r < rows; r++)    //loops through all board rows
@@ -525,7 +588,6 @@ void drawpiece(sf::RenderWindow& window, sf::RectangleShape& block, sf::Color co
         }
     }
 }
-
 
 bool loadpieces()                     //loads all seven tetris pieces
 {
@@ -638,6 +700,12 @@ int main()                            //main function where the game starts
     linestext.setFillColor(sf::Color::White); //sets the lines text color
     linestext.setPosition({350.f, 130.f}); //sets the lines text position
 
+    sf::Text nexttext(font);          //creates the next piece label
+    nexttext.setString("Next piece:"); //sets the label text
+    nexttext.setCharacterSize(16);    //sets the label text size
+    nexttext.setFillColor(sf::Color::White); //sets the label text color
+    nexttext.setPosition({356.f, 184.f}); //sets the label text position
+
     sf::Text gameovertext(font);      //creates the game over message
     gameovertext.setString("GAME OVER!"); //sets the game over message
     gameovertext.setCharacterSize(40); //sets the game over text size
@@ -693,6 +761,8 @@ int main()                            //main function where the game starts
         window.draw(scoretext);       //draws the score
         window.draw(leveltext);       //draws the level
         window.draw(linestext);       //draws the cleared lines
+
+        drawnext(window, colors, nexttext);     //draws the next piece preview
 
         if (gameover)                 //checks whether the game has ended
         {
