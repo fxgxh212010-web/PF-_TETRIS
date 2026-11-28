@@ -4,20 +4,9 @@
 #include <ctime>                    //for time
 #include <optional>                 //for sfml event handling
 #include <SFML/Graphics.hpp>        //for sfml graphics
-#include <iostream>                 //for input and output
-#include <fstream>                  //for reading and writing files
-#include <cstdlib>                  //for rand and srand
-#include <ctime>                    //for time
-#include <optional>                 //for sfml event handling
-#include <SFML/Graphics.hpp>        //for sfml graphics
 
 using namespace std;
 
-const int rows = 20;                //number of board rows
-const int cols = 10;                //number of board columns
-const float cell = 30.f;            //size of each board cell
-const float board_x = 20.f;         //horizontal board position
-const float board_y = 20.f;         //vertical board position
 const int rows = 20;                //number of board rows
 const int cols = 10;                //number of board columns
 const float cell = 30.f;            //size of each board cell
@@ -27,14 +16,8 @@ const float board_y = 20.f;         //vertical board position
 int board[rows][cols];              //2d array for the tetris board
 
 char pieces[7][4][4];               //stores all 7 tetris pieces
-char pieces[7][4][4];               //stores all 7 tetris pieces
 char activepiece[4][4];             //stores the currently falling piece
 
-int currentpiece = 0;               //index of the current piece
-int score = 0;                      //stores the player's score
-int level = 1;                      //stores the current game level
-int linescleared = 0;               //stores the total cleared lines
-int framecount = 0;                 //counts frames for automatic falling
 int currentpiece = 0;               //index of the current piece
 int score = 0;                      //stores the player's score
 int level = 1;                      //stores the current game level
@@ -68,83 +51,12 @@ bool loadboard()                    //loads the game board from the file
     {
         cout << "Could not open board.txt" << endl; //displays an error message
         return false;               //stops loading if the file is unavailable
-        cout << "Could not open board.txt" << endl; //displays an error message
-        return false;               //stops loading if the file is unavailable
     }
 
     for (int r = 0; r < rows; r++)   //loops through all board rows
-    for (int r = 0; r < rows; r++)   //loops through all board rows
-    {
-        for (int c = 0; c < cols; c++) //loops through all board columns
-        for (int c = 0; c < cols; c++) //loops through all board columns
-        {
-            file >> board[r][c];    //loads each cell value into the board
-        }
-    }
-
-    file.close();                   //closes the board file
-    return true;                    //confirms successful loading
-}
-
-
-void resetgame(sf::Clock& clock)    //resets the game for a new session
-{
-    if (!loadboard())               //loads the empty board from the file
-        return;                     //stops resetting if loading fails
-
-    score = 0;                      //resets the player's score
-    level = 1;                      //resets the game level
-    linescleared = 0;               //resets the cleared line counter
-
-    gameover = false;               //removes the game over state
-    paused = false;                 //removes the paused state
-
-    spawnpiece();                   //creates a new falling piece
-
-    clock.restart();                //resets the falling timer
-    framecount = 0;                 //resets the frame counter
-}
-
-
-void savegame()                     //saves the current game progress
-{
-    ofstream file("savegame.txt");  //opens the save file
-
-    if (!file)                      //checks whether the file opened successfully
-    {
-        cout << "Could not save game!" << endl; //displays an error message
-        return;                     //stops saving if the file is unavailable
-    }
-
-    file << score << " " << level << endl; //saves the score and level
-    file << linescleared << " " << currentpiece << endl; //saves lines and piece index
-
-    for (int r = 0; r < rows; r++)  //loops through all board rows
     {
         for (int c = 0; c < cols; c++) //loops through all board columns
         {
-            file << board[r][c] << " "; //saves each board cell
-        }
-
-        file << endl;               //moves to the next line in the save file
-    }
-
-    file.close();                   //closes the save file
-}
-
-
-void clearsave()                    //clears the previously saved game
-{
-    ofstream file("savegame.txt");  //opens the save file in overwrite mode
-    file.close();                   //closes the file after clearing its contents
-}
-
-
-bool loadgame()                     //loads a previously saved game
-{
-    ifstream file("savegame.txt");  //opens the saved game file
-
-    if (!file)                      //checks whether a save file exists
             file >> board[r][c];    //loads each cell value into the board
         }
     }
@@ -230,23 +142,6 @@ bool loadgame()                     //loads a previously saved game
     if (currentpiece < 0 || currentpiece >= 7) //checks whether the piece index is valid
     {
         return false;               //rejects an invalid piece index
-        cout << "No saved game found!" << endl; //displays an error message
-        return false;               //returns false if no save exists
-    }
-
-    if (!(file >> score >> level))  //loads the saved score and level
-    {
-        return false;               //stops loading if the data is incorrect
-    }
-
-    if (!(file >> linescleared >> currentpiece)) //loads saved lines and piece index
-    {
-        return false;               //stops loading if the data is incorrect
-    }
-
-    if (currentpiece < 0 || currentpiece >= 7) //checks whether the piece index is valid
-    {
-        return false;               //rejects an invalid piece index
     }
 
     for (int r = 0; r < rows; r++)  //loops through all board rows
@@ -308,117 +203,13 @@ void initializeblock(sf::RectangleShape& block) //initializes the size of each b
 
 
 bool canmove(int dx, int dy)         //checks whether the piece can move
-    for (int r = 0; r < rows; r++)  //loops through all board rows
-    {
-        for (int c = 0; c < cols; c++) //loops through all board columns
-        {
-            if (!(file >> board[r][c])) //loads each saved board cell
-            {
-                return false;       //stops loading if the board data is incomplete
-            }
-        }
-    }
-
-    file.close();                   //closes the save file
-
-    for (int r = 0; r < 4; r++)     //loops through the piece rows
-    {
-        for (int c = 0; c < 4; c++) //loops through the piece columns
-        {
-            activepiece[r][c] = pieces[currentpiece][r][c]; //restores the saved piece shape
-        }
-    }
-
-    piece_x = 3;                    //places the restored piece horizontally
-    piece_y = 0;                    //places the restored piece at the top
-
-    gameover = false;               //removes the game over state
-    paused = false;                 //removes the paused state
-    framecount = 0;                 //resets the falling frame counter
-
-    if (!canmove(0, 0))             //checks whether the restored piece can fit
-    {
-        gameover = true;            //ends the game if the piece cannot fit
-        clearsave();                //clears the invalid saved game
-        return false;               //reports that loading failed
-    }
-
-    return true;                    //confirms successful loading
-}
-
-
-void initializecolors(sf::Color colors[]) //initializes the colors of the pieces
-{
-    colors[0] = sf::Color(25, 25, 45); //sets the empty cell color
-    colors[1] = sf::Color::Cyan;     //sets the first piece color
-    colors[2] = sf::Color::Yellow;   //sets the second piece color
-    colors[3] = sf::Color(170, 90, 255); //sets the third piece color
-    colors[4] = sf::Color::Green;    //sets the fourth piece color
-    colors[5] = sf::Color::Red;      //sets the fifth piece color
-    colors[6] = sf::Color::Blue;     //sets the sixth piece color
-    colors[7] = sf::Color(255, 150, 0); //sets the seventh piece color
-}
-
-
-void initializeblock(sf::RectangleShape& block) //initializes the size of each block
-{
-    block.setSize({cell - 2, cell - 2}); //sets the block dimensions
-}
-
-
-bool canmove(int dx, int dy)         //checks whether the piece can move
 {
     for (int r = 0; r < 4; r++)      //loops through the piece rows
-    for (int r = 0; r < 4; r++)      //loops through the piece rows
     {
-        for (int c = 0; c < 4; c++) //loops through the piece columns
         for (int c = 0; c < 4; c++) //loops through the piece columns
         {
             if (activepiece[r][c] == '1') //checks whether the current cell contains a block
-            if (activepiece[r][c] == '1') //checks whether the current cell contains a block
             {
-                int new_x = piece_x + c + dx; //calculates the new horizontal position
-                int new_y = piece_y + r + dy; //calculates the new vertical position
-
-                if (new_x < 0 || new_x >= cols || new_y >= rows) //checks board boundaries
-                    return false;       //prevents movement outside the board
-
-                if (new_y >= 0 && board[new_y][new_x] != 0) //checks collision with locked blocks
-                    return false;       //prevents movement into occupied cells
-            }
-        }
-    }
-
-    return true;                        //confirms that the movement is valid
-}
-
-
-void rotatepiece()                    //rotates the current piece clockwise
-{
-    char rotated[4][4];                //temporary array for the rotated piece
-
-    for (int r = 0; r < 4; r++)       //loops through the original piece rows
-    {
-        for (int c = 0; c < 4; c++)   //loops through the original piece columns
-        {
-            rotated[r][c] = activepiece[3 - c][r]; //rotates the piece clockwise
-        }
-    }
-
-    for (int r = 0; r < 4; r++)       //checks the rotated piece rows
-    {
-        for (int c = 0; c < 4; c++)   //checks the rotated piece columns
-        {
-            if (rotated[r][c] == '1') //checks actual blocks only
-            {
-                int x = piece_x + c;  //calculates the block's horizontal position
-                int y = piece_y + r;  //calculates the block's vertical position
-
-                if (x < 0 || x >= cols || y >= rows) //checks board boundaries
-                    return;             //cancels rotation if the block is outside
-
-                if (y >= 0 && board[y][x] != 0) //checks collision with locked blocks
-                    return;             //cancels rotation if the space is occupied
                 int new_x = piece_x + c + dx; //calculates the new horizontal position
                 int new_y = piece_y + r + dy; //calculates the new vertical position
 
@@ -602,42 +393,18 @@ void lockpiece()                      //locks the piece in its current position
 void clearlines()                     //removes completely filled rows
 {
     for (int r = rows - 1; r >= 0; r--) //starts checking from the bottom row
-void lockpiece()                      //locks the piece in its current position
-{
-    for (int r = 0; r < 4; r++)       //loops through the piece rows
     {
-        for (int c = 0; c < 4; c++)   //loops through the piece columns
-        {
-            if (activepiece[r][c] == '1') //checks actual blocks only
-            {
-                board[piece_y + r][piece_x + c] = currentpiece + 1; //stores the piece on the board
-            }
-        }
-    }
-}
-
-
-void clearlines()                     //removes completely filled rows
-{
-    for (int r = rows - 1; r >= 0; r--) //starts checking from the bottom row
-    {
-        bool full = true;              //assumes the row is completely filled
         bool full = true;              //assumes the row is completely filled
 
         for (int c = 0; c < cols; c++) //checks every cell in the row
-        for (int c = 0; c < cols; c++) //checks every cell in the row
         {
             if (board[r][c] == 0)     //checks whether a cell is empty
-            if (board[r][c] == 0)     //checks whether a cell is empty
             {
-                full = false;          //marks the row as incomplete
-                break;                 //stops checking the current row
                 full = false;          //marks the row as incomplete
                 break;                 //stops checking the current row
             }
         }
 
-        if (full)                      //checks whether the row is complete
         if (full)                      //checks whether the row is complete
         {
             score += 100;              //increases the score
@@ -649,39 +416,24 @@ void clearlines()                     //removes completely filled rows
             }
 
             for (int i = r; i > 0; i--) //moves all rows above downward
-            score += 100;              //increases the score
-            linescleared++;            //increases the cleared line counter
-
-            if (linescleared % 10 == 0) //checks whether ten lines have been cleared
             {
-                level++;               //increases the game level
-            }
-
-            for (int i = r; i > 0; i--) //moves all rows above downward
-            {
-                for (int c = 0; c < cols; c++) //loops through every column
                 for (int c = 0; c < cols; c++) //loops through every column
                 {
-                    board[i][c] = board[i - 1][c]; //copies the row above
                     board[i][c] = board[i - 1][c]; //copies the row above
                 }
             }
 
             for (int c = 0; c < cols; c++) //loops through the top row
-            for (int c = 0; c < cols; c++) //loops through the top row
             {
-                board[0][c] = 0;        //clears the top row
                 board[0][c] = 0;        //clears the top row
             }
 
             r++;                        //checks the same row again after shifting
-            r++;                        //checks the same row again after shifting
         }
     }
 }
 
 
-void spawnpiece()                     //spawns a random tetris piece
 void spawnpiece()                     //spawns a random tetris piece
 {
     currentpiece = rand() % 7;         //selects a random piece from 0 to 6
@@ -689,34 +441,22 @@ void spawnpiece()                     //spawns a random tetris piece
     for (int r = 0; r < 4; r++)       //loops through the piece rows
     {
         for (int c = 0; c < 4; c++)   //loops through the piece columns
-    currentpiece = rand() % 7;         //selects a random piece from 0 to 6
-
-    for (int r = 0; r < 4; r++)       //loops through the piece rows
-    {
-        for (int c = 0; c < 4; c++)   //loops through the piece columns
         {
-            activepiece[r][c] = pieces[currentpiece][r][c]; //copies the selected piece
             activepiece[r][c] = pieces[currentpiece][r][c]; //copies the selected piece
         }
     }
 
     piece_x = 3;                       //places the piece horizontally
     piece_y = 0;                       //places the piece at the top
-    piece_x = 3;                       //places the piece horizontally
-    piece_y = 0;                       //places the piece at the top
 
     if (!canmove(0, 0))                //checks whether the new piece can fit
-    if (!canmove(0, 0))                //checks whether the new piece can fit
     {
-        gameover = true;               //ends the game if the piece cannot fit
-        clearsave();                   //clears the saved game
         gameover = true;               //ends the game if the piece cannot fit
         clearsave();                   //clears the saved game
     }
 }
 
 
-void updatefalling()                  //controls automatic piece falling
 void updatefalling()                  //controls automatic piece falling
 {
     int speed = 30 - (level - 1) * 5;  //calculates falling speed based on level
@@ -727,22 +467,11 @@ void updatefalling()                  //controls automatic piece falling
     }
 
     framecount++;                     //increases the frame counter
-    int speed = 30 - (level - 1) * 5;  //calculates falling speed based on level
-
-    if (speed < 5)                    //checks whether the speed is too high
-    {
-        speed = 5;                    //sets the minimum falling speed
-    }
-
-    framecount++;                     //increases the frame counter
 
     if (framecount >= speed)          //checks whether enough frames have passed
-    if (framecount >= speed)          //checks whether enough frames have passed
     {
-        if (canmove(0, 1))             //checks whether the piece can move down
         if (canmove(0, 1))             //checks whether the piece can move down
         {
-            piece_y++;                 //moves the piece down one row
             piece_y++;                 //moves the piece down one row
         }
         else
@@ -750,13 +479,7 @@ void updatefalling()                  //controls automatic piece falling
             lockpiece();               //locks the piece on the board
             clearlines();              //clears completed rows
             spawnpiece();              //creates the next piece
-            lockpiece();               //locks the piece on the board
-            clearlines();              //clears completed rows
-            spawnpiece();              //creates the next piece
         }
-
-        framecount = 0;                //resets the frame counter
-    }
 
         framecount = 0;                //resets the frame counter
     }
@@ -765,7 +488,6 @@ void updatefalling()                  //controls automatic piece falling
 
 void drawboard(sf::RenderWindow& window, sf::RectangleShape& block, sf::Color colors[]) //draws the game board
 {
-    for (int r = 0; r < rows; r++)    //loops through all board rows
     for (int r = 0; r < rows; r++)    //loops through all board rows
     {
         for (int c = 0; c < cols; c++) //loops through all board columns
