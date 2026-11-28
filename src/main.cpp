@@ -45,6 +45,8 @@ char activepiece[4][4];             //stores the currently falling piece
 
 int currentpiece = 0;               //index of the current piece
 int nextpiece = -1;                 //index of the next piece to spawn
+int holdpiece = -1;                 //index of the held piece (-1 means the hold box is empty)
+bool holdused = false;              //checks whether hold was already used for this piece
 int score = 0;                      //stores the player's score
 int level = 1;                      //stores the current game level
 int linescleared = 0;               //stores the total cleared lines
@@ -99,6 +101,7 @@ void resetgame(sf::Clock& clock)    //resets the game for a new session
     score = 0;                      //resets the player's score
     level = 1;                      //resets the game level
     linescleared = 0;               //resets the cleared line counter
+    holdpiece = -1;                 //empties the hold box
 
     paused = false;                 //removes the paused state
     gameState = PLAYING;            //starts the playing state
@@ -187,6 +190,7 @@ bool loadgame()                     //loads a previously saved game
     paused = false;                 //removes the paused state
     framecount = 0;                 //resets the falling frame counter
     gameState = PLAYING;            //starts the playing state
+    holdpiece = -1;                 //empties the hold box
 
     nextpiece = savedpiece;         //queues the saved next piece
     spawnpiece();                   //drops it from the top and picks a new random next piece
@@ -297,6 +301,44 @@ void harddrop()                       //drops the piece directly to the bottom
 }
 
 
+void holdcurrent()                    //BONUS: holds the current piece or swaps it with the held piece
+{
+    if (holdused)                     //hold can only be used once per piece
+        return;                       //ignores the key if already used
+
+    if (holdpiece == -1)              //checks whether the hold box is empty
+    {
+        holdpiece = currentpiece;     //saves the current piece into the hold box
+        spawnpiece();                 //a new piece starts falling instead
+    }
+    else                              //the hold box already has a piece
+    {
+        int temp = currentpiece;      //remembers the current piece
+        currentpiece = holdpiece;     //the held piece becomes the active piece
+        holdpiece = temp;             //the old active piece goes into the hold box
+
+        for (int r = 0; r < 4; r++)   //loops through the piece rows
+        {
+            for (int c = 0; c < 4; c++) //loops through the piece columns
+            {
+                activepiece[r][c] = pieces[currentpiece][r][c]; //copies the swapped piece
+            }
+        }
+
+        piece_x = 3;                  //places the piece horizontally
+        piece_y = 0;                  //places the piece at the top
+
+        if (!canmove(0, 0))           //checks whether the swapped piece can fit
+        {
+            gameState = GAME_OVER;    //ends the game if the piece cannot fit
+            clearsave();              //clears the saved game
+        }
+    }
+
+    holdused = true;                  //blocks another hold until the next piece spawns
+}
+
+
 //---------------------------------------------------------------- input (one function per state)
 bool insidebutton(sf::Vector2i mousepos, int top, int bottom) //checks whether the mouse is inside a menu button
 {
@@ -389,6 +431,11 @@ void playinginput(sf::Clock& clock, const sf::Event& event) //handles input whil
     if (key->code == sf::Keyboard::Key::Space) //checks the hard drop key
     {
         harddrop();                     //drops the piece directly down
+    }
+
+    if (key->code == sf::Keyboard::Key::C) //BONUS: checks the hold key
+    {
+        holdcurrent();                  //holds or swaps the current piece
     }
 }
 
@@ -500,6 +547,8 @@ void spawnpiece()                     //spawns the queued piece and picks the ne
     currentpiece = nextpiece;          //the queued piece becomes the active piece
     nextpiece = rand() % 7;            //picks the new next piece for the preview
 
+    holdused = false;                  //a new piece allows hold to be used again
+
     for (int r = 0; r < 4; r++)       //loops through the piece rows
     {
         for (int c = 0; c < 4; c++)   //loops through the piece columns
@@ -596,6 +645,38 @@ void drawboard(sf::RenderWindow& window, sf::RectangleShape& block, sf::Color co
 }
 
 
+void drawshadow(sf::RenderWindow& window, sf::Color colors[]) //BONUS: draws the outline where the piece will land
+{
+    int drop = 0;                      //how many rows the copy can move down
+
+    while (canmove(0, drop + 1))       //keeps moving the copy down while it still fits
+    {
+        drop++;                        //moves the copy one row down
+    }
+
+    sf::RectangleShape outline({cell - 2, cell - 2}); //creates one outline block
+    outline.setFillColor(sf::Color::Transparent);     //keeps the inside empty
+    outline.setOutlineColor(colors[currentpiece + 1]); //uses the piece color for the outline
+    outline.setOutlineThickness(-2.f); //draws the outline inside the block
+
+    for (int r = 0; r < 4; r++)       //loops through the piece rows
+    {
+        for (int c = 0; c < 4; c++)   //loops through the piece columns
+        {
+            if (activepiece[r][c] == '#') //checks actual blocks only
+            {
+                outline.setPosition({ //sets the position of the shadow block
+                    board_x + (piece_x + c) * cell + 1, //calculates the horizontal position
+                    board_y + (piece_y + r + drop) * cell + 1 //calculates the landing position
+                });
+
+                window.draw(outline);  //draws the shadow block
+            }
+        }
+    }
+}
+
+
 void drawpiece(sf::RenderWindow& window, sf::RectangleShape& block, sf::Color colors[]) //draws the active piece
 {
     for (int r = 0; r < 4; r++)       //loops through the piece rows
@@ -677,11 +758,74 @@ void drawnext(sf::RenderWindow& window, const sf::Font& font, sf::Color colors[]
 }
 
 
+void drawhold(sf::RenderWindow& window, const sf::Font& font, sf::Color colors[]) //BONUS: draws the held piece in the side panel
+{
+    drawtext(window, font, "Hold (C):", 16, sf::Color::White, 356.f, 250.f); //draws the hold label
+
+    if (holdpiece < 0 || holdpiece >= 7) //checks whether a piece is being held
+        return;                        //skips drawing if the hold box is empty
+
+    const float mini = 9.f;            //size of each preview cell
+    const float box_cx = 470.f;        //horizontal center of the piece area
+    const float box_cy = 261.f;        //vertical center of the hold box
+
+    int minr = 4, maxr = -1;           //tracks the top and bottom rows of the piece
+    int minc = 4, maxc = -1;           //tracks the left and right columns of the piece
+
+    for (int r = 0; r < 4; r++)       //loops through the piece rows
+    {
+        for (int c = 0; c < 4; c++)   //loops through the piece columns
+        {
+            if (pieces[holdpiece][r][c] == '#') //checks actual blocks only
+            {
+                if (r < minr) minr = r; //updates the top row
+                if (r > maxr) maxr = r; //updates the bottom row
+                if (c < minc) minc = c; //updates the left column
+                if (c > maxc) maxc = c; //updates the right column
+            }
+        }
+    }
+
+    if (maxr == -1)                    //checks whether the piece has any blocks
+        return;                        //skips drawing an empty piece
+
+    float w = (maxc - minc + 1) * mini; //calculates the piece width
+    float h = (maxr - minr + 1) * mini; //calculates the piece height
+
+    float startx = box_cx - w / 2.f;   //centers the piece horizontally
+    float starty = box_cy - h / 2.f;   //centers the piece vertically
+
+    sf::RectangleShape backing({w + 6.f, h + 6.f}); //creates a dark backing behind the piece
+    backing.setFillColor(colors[0]);   //uses the empty cell color
+    backing.setPosition({startx - 3.f, starty - 3.f}); //positions the backing
+    window.draw(backing);              //draws the backing
+
+    sf::RectangleShape smallblock({mini - 1.f, mini - 1.f}); //creates a small block
+    smallblock.setFillColor(colors[holdpiece + 1]); //uses the held piece's color
+
+    for (int r = minr; r <= maxr; r++) //loops through the piece's used rows
+    {
+        for (int c = minc; c <= maxc; c++) //loops through the piece's used columns
+        {
+            if (pieces[holdpiece][r][c] == '#') //checks actual blocks only
+            {
+                smallblock.setPosition({startx + (c - minc) * mini, starty + (r - minr) * mini}); //positions the block
+                window.draw(smallblock); //draws the held block
+            }
+        }
+    }
+}
+
+
 void drawplaying(sf::RenderWindow& window, const sf::Font& font, const sf::Sprite& gamesprite, sf::RectangleShape& block, sf::Color colors[]) //draws the board and the side panel
 {
     window.draw(gamesprite);           //draws the gameplay background
 
     drawboard(window, block, colors);  //draws the game board
+
+    if (gameState == PLAYING)          //BONUS: the shadow is only needed while playing
+        drawshadow(window, colors);    //BONUS: draws the landing outline
+
     drawpiece(window, block, colors);  //draws the active piece
 
     drawtext(window, font, "Score: " + to_string(score), 24, sf::Color::White, 350.f, 30.f); //draws the score
@@ -689,6 +833,7 @@ void drawplaying(sf::RenderWindow& window, const sf::Font& font, const sf::Sprit
     drawtext(window, font, "Lines: " + to_string(linescleared), 24, sf::Color::White, 350.f, 130.f); //draws the cleared lines
 
     drawnext(window, font, colors);    //draws the next piece preview
+    drawhold(window, font, colors);    //BONUS: draws the held piece
 }
 
 
